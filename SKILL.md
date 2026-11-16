@@ -31,6 +31,9 @@ metadata:
 
 ## 什么时候用
 
+- **先查存量，后开新档**：开新 `.agents/jdr/<日期>-<名称>/` 前，必须扫描 `.agents/jdr/` 下所有 `stage=prototype` 且未确认实施的 spec。若新变更触达的页面/路由（如 /market、/admin/platform）已被某个未实施 spec 收录，**必须并入该 spec（version+1）**，禁止新开目录——两份 prototype 各自描述同一页面的不同未来 = 实现团队拿到冲突计划。新开目录仅当变更域与所有未实施 spec 无交集。
+
+
 - 用户说「出个方案确认页」「做成评审原型」「把方案整合到一个页面开会用」时
 - 需求聊完、规划定稿后，**写代码之前**的确认阶段（`stage: "prototype"`）；实现后回顾用 `stage: "done"`
 - 变更涉及多个维度：页面 + 系统协作 + 数据库 + 中间件 + 后端，需要一页全量呈现
@@ -56,7 +59,7 @@ metadata:
 node $SKILL/scripts/build.mjs .agents/jdr/<dir>/spec.json      # 校验+格式红线 lint, 出错阻断
 node $SKILL/scripts/embed.mjs .agents/jdr/<dir>/preview.html   # 截图内嵌 + </ 转义（默认从 preview 同目录探测 evidence/，缺图阻断退出）
 ```
-build.mjs 格式红线（v1.3+，机器兜底）：R1 有 modified/removed 页但树内 0 截图 → 阻断；R2 改动页≥3 无 0 改动上下文页 → 警告；R3 页面级 modified 无 before/note → 警告。embed.mjs：evidence 引用有遗漏 → 阻断退出（不再静默成功）。
+build.mjs 格式红线（v1.4+，机器兜底）：R1 有 modified/removed 页但树内 0 截图 → 阻断；R2 改动页≥3 无 0 改动上下文页 → 警告；R3 页面级 modified 无 before/note → 警告；**R6 兄弟目录存在未实施 prototype spec 收录了相同路由 → 阻断**（跨 `.agents/jdr/*` 目录扫描；同目录 spec*.json 是版本历史不算冲突；确属独立方案加 `--no-lint-siblings` 豁免并说明理由）。embed.mjs：evidence 引用有遗漏 → 阻断退出（不再静默成功）。
 
 ### 4. 交互验证（必须做，不许只看构建成功）
 Playwright 真实点击验证（清单见 workflow.md）：徽标编号三方一致、详情小图单屏等比无截断、演示模式交互链、Archify 点选批注、CSS 隔离。

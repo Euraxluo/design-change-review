@@ -2,7 +2,7 @@
 // build: validate a change spec and inline it into one self-contained preview HTML.
 // Usage: node build.mjs <spec.json> [-o preview.html] [--check]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve, join } from 'node:path';
+import { dirname, basename, resolve, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -53,12 +53,12 @@ async function doctorAll() {
   console.error('\n✖ ' + fails + ' 项未通过'); process.exitCode = 1;
 }
 
-let specPath = null, out = null, checkOnly = false, doctor = args.includes('--doctor');
+let specPath = null, out = null, checkOnly = false, noLintSiblings = args.includes('--no-lint-siblings'), doctor = args.includes('--doctor');
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '-o' || a === '--out') out = args[++i];
   else if (a === '--check') checkOnly = true;
-  else if (a === '--doctor') continue;
+  else if (a === '--doctor' || a === '--no-lint-siblings') continue;
   else if (a === '-h' || a === '--help') usage(0);
   else if (!specPath) specPath = a;
   else usage(2);
@@ -82,6 +82,66 @@ const { errors, warnings, summary } = validate(spec);
 for (const w of warnings) console.log('⚠ ' + w);
 for (const e of errors) console.error('✖ ' + e);
 console.log(summary);
+
+// ---- R6 存量并入 lint: 同目录其他未实施 prototype spec 若已收录相同路由，本 spec 应并入而非新开 ----
+if (!noLintSiblings) {
+  try {
+    const fsMod = await import('node:fs');
+    const readdirSync = fsMod.readdirSync;
+    // 扫描范围: spec 所在目录的同级 spec 文件 + .agents/jdr 下兄弟目录里的 spec*.json（R6 的漏洞正是"开新目录"——只扫同目录永远抓不到）
+    const dir = dirname(specPath);
+    // jdrRoot legacy var removed: walk-up logic above finds .agents/jdr from the spec dir
+    // 同目录的 spec*.json 是同一设计的版本历史，不算 sibling；只扫 .agents/jdr 下兄弟目录的 live spec
+    const candidates = [];
+    let jdr = dirname(dir);
+    while (jdr && basename(jdr) !== 'jdr' && jdr !== dirname(jdr)) jdr = dirname(jdr);
+    if (basename(jdr) === 'jdr') {
+      for (const d of readdirSync(jdr, { withFileTypes: true })) {
+        if (!d.isDirectory()) continue;
+        const sub = join(jdr, d.name);
+        if (resolve(sub) === resolve(dir)) continue;
+        // archive/ 是历史归档（已并入或废弃），不参与 R6；live spec 可能埋一层（<jdr>/<dir>/spec.json 或 <jdr>/<dir>/<design-name>/spec.json）
+        const tryPush = (folder) => {
+          try {
+            for (const f of readdirSync(folder)) {
+              if (f === 'spec.json' || /^spec-v\d+\.json$/.test(f)) candidates.push(join(folder, f));
+            }
+          } catch { /* unreadable dir */ }
+        };
+        if (d.name === 'archive') continue;
+        tryPush(sub);
+        try {
+          for (const d2 of readdirSync(sub, { withFileTypes: true })) {
+            if (d2.isDirectory() && d2.name !== 'archive') tryPush(join(sub, d2.name));
+          }
+        } catch { /* */ }
+      }
+    }
+    const seen = new Set();
+    const routesOf = (sp) => {
+      const rs = new Set();
+      for (const p of sp.pages || []) {
+        const r = p.route || p.id;
+        if (p.change && p.change !== 'unchanged') rs.add(String(r).split('?')[0]);
+      }
+      return rs;
+    };
+    const myRoutes = routesOf(spec);
+    for (const cand of candidates) {
+      const rp = resolve(cand);
+      if (rp === specPath || seen.has(rp)) continue;
+      seen.add(rp);
+      let sib;
+      try { sib = JSON.parse(readFileSync(rp, 'utf8')); } catch { continue; }
+      if (sib.stage === 'done' || !Array.isArray(sib.pages)) continue;
+      const overlap = [...routesOf(sib)].filter((r) => myRoutes.has(r));
+      if (overlap.length) {
+        console.error('✖ 格式红线R6: ' + rp + '（version ' + (sib.version ?? '?') + '·未实施' + (sib.stage === 'prototype' ? '' : '/' + sib.stage) + '）已收录路由 ' + overlap.join(', ') + '——本方案触达相同页面，应并入该 spec（version+1）而不是新开目录；两份 prototype 对同一页面各画未来 = 冲突计划。（确属独立可加 --no-lint-siblings 豁免）');
+        errors.push('R6 sibling-route conflict');
+      }
+    }
+  } catch { /* 目录不可读时静默跳过，不阻断 */ }
+}
 if (errors.length) { console.error('✖ 有 ' + errors.length + ' 个错误，未生成。'); process.exit(1); }
 if (checkOnly) { console.log('✔ 校验通过'); process.exit(0); }
 

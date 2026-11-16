@@ -15,8 +15,11 @@
 | R3 modified 可辨识 | 页面级 modified 必带 before 或 note | build 警告 |
 | R4 嵌入完整性 | evidence 引用必须全部内嵌成功才允许交付 | embed 阻断退出 |
 | R5 tab 精准 | 截图必须是变更发生处的 tab/视图激活态，禁止相邻页面顶替 | 人工（无法机器判图） |
+| R6 存量并入 | 新变更若触达任何未实施 prototype spec 的页面/路由，并入该 spec（version+1），不开新目录 | build 跨 spec 路由冲突检测 |
 
 写 spec 前自查三问：改动页的截图进树了吗？有几页是「0 改动」对照？modified 页面的 before 写了吗？
+
+**第四问（2026-11-16 第二次回退）**：`.agents/jdr/` 下有没有未实施的 prototype spec 已经动过我要改的页面？有 → 并入它 version+1，不开新档。两份 prototype 对同一页面各自画未来 = 冲突计划。「功能上属于另一个项目/另一个需求」不是开新档的理由，「页面/路由无交集」才是。build.mjs 的 `--lint-siblings` 会扫描同目录其他 spec 的路由做冲突报警。
 
 ## 1. 现状盘点（先于一切设计）
 

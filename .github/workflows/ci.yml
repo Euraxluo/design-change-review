@@ -89,6 +89,17 @@ jobs:
           SPEC
           node scripts/build.mjs /tmp/r2/spec.json -o /tmp/r2/preview.html 2>&1 | tee /tmp/r2/out.txt
           grep -q "格式红线R2" /tmp/r2/out.txt && echo "R2 warns ✔"
+      - name: Format redline R6 blocks new spec whose routes an unimplemented sibling prototype already covers
+        run: |
+          mkdir -p /tmp/jdr/20260101-old/design /tmp/jdr/20260102-new/design
+          echo '{"title":"old","stage":"prototype","version":9,"pages":[{"id":"m","name":"M","route":"/market","change":"modified","note":"x","root":{"id":"m-r","type":"page","children":[{"id":"m-img","type":"image","src":"evidence/current-pages/m.png"}]}}],"flows":[],"backend":[]}' > /tmp/jdr/20260101-old/design/spec.json
+          echo '{"title":"new","stage":"prototype","version":1,"pages":[{"id":"m2","name":"M2","route":"/market","change":"modified","note":"y","root":{"id":"m2-r","type":"page","children":[{"id":"m2-img","type":"image","src":"evidence/current-pages/m2.png"}]}}],"flows":[],"backend":[]}' > /tmp/jdr/20260102-new/design/spec.json
+          if node scripts/build.mjs /tmp/jdr/20260102-new/design/spec.json -o /tmp/jdr/20260102-new/design/preview.html 2>/tmp/r6err.txt; then
+            echo "ERROR: R6 should block cross-dir route conflict"; exit 1
+          else
+            grep -q "格式红线R6" /tmp/r6err.txt && echo "R6 blocks cross-dir conflict ✔"
+          fi
+          node scripts/build.mjs /tmp/jdr/20260102-new/design/spec.json -o /tmp/jdr/20260102-new/design/preview.html --no-lint-siblings >/dev/null && echo "R6 exemption flag works ✔"
       - name: embed.mjs exits nonzero on missing evidence; discovers evidence next to preview by default
         run: |
           mkdir -p /tmp/emb/evidence/current-pages
