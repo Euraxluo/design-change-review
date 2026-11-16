@@ -579,12 +579,14 @@ input,select,textarea{border:1px solid #777}
 .pl-replica .cv-replica-t{display:none}
 .pl-frame.has-replica .pl-fb{background:#fff}
 
-/* 系统流程: 弹性满视口布局(iframe 填满剩余高度) — 链: .body > .main > .cv-layout > .flows-fill */
+/* 系统流程: 单条满视口 / 多条可滚动卡片 — 链: .body > .main > .cv-layout > .flows-fill */
 .body{display:flex;flex:1;min-height:0}
 .main{display:flex;flex-direction:column;min-height:0}
 .main:has(> .cv-layout > .flows-fill){padding:0!important;overflow:hidden}
 .cv-layout > .flows-fill{flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto;padding:6px 10px 10px;margin:0}
-.flows-fill .flow.card:has(.flow-embed){flex:1;display:flex;flex-direction:column;min-height:0}
+/* 多条 sysflow: 不再 flex:1 互相挤压(2026-11-16 4 图挤压成 136px 缝的回退), 每张卡片固定足够高度, 容器滚动 */
+.flows-fill .flow.card:has(.flow-embed){display:flex;flex-direction:column;min-height:0;flex:none;height:640px;margin-bottom:12px}
+.flows-fill .flow.card:has(.flow-embed):only-of-type{flex:1;height:auto}   /* 单条时维持满视口 */
 .flow-embed{flex:1;display:flex;min-height:0;border:1px solid #d5d9e0;border-radius:8px;overflow:hidden;background:#fff}
 .flow-embed iframe{flex:1;width:100%;height:100%;border:0;background:#fff}
 .flows-fill .flow-head{flex:none}
