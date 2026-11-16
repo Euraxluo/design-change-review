@@ -1287,6 +1287,11 @@ function questionsCard() {
     const key = qq.id || String(i);
     const ans = S.answers[key] || '';
     return h('div', { class: 'q' }, h('div', { class: 'q-t' }, (i + 1) + '. ' + (qq.q || qq.question || '')),
+      // Agent 预填判定(v1.7): agentAnswer/agentReason/default 由 spec 提供——用户没点选时展示判定+依据, 点击选项即确认或否决
+      !ans && qq.agentAnswer ? h('div', { class: 'q-agent', style: 'border:1px solid #cfe3d4;background:#f2f9f4;border-radius:8px;padding:8px 10px;margin:6px 0' },
+        h('div', { style: 'font-weight:700;font-size:12.5px' }, '🤖 Agent 判定: ', h('span', { style: 'font-weight:600' }, qq.agentAnswer)),
+        qq.default ? h('div', { style: 'font-size:11.5px;color:#33684a;margin-top:2px' }, '默认执行: ' + qq.default + '（无需操作即按此实现；点下方选项可否决）') : null,
+        qq.agentReason ? h('div', { style: 'font-size:11.5px;color:#5b7263;margin-top:4px;white-space:pre-wrap' }, '依据: ' + qq.agentReason) : null) : null,
       qq.options ? h('div', { class: 'q-opts' }, qq.options.map((o) => h('button', { class: ans === o ? 'on' : null, onclick: () => mutate(() => { S.answers[key] = ans === o ? '' : o; return null; }) }, o))) : null,
       h('textarea', { 'data-f': 'ans-' + key, placeholder: '你的回答（可选）', value: ans, onchange: (e) => { const val = e.target.value; mutate(() => { S.answers[key] = val; return null; }); } }));
   }));
@@ -2077,7 +2082,7 @@ function renderFeedback() {
       h('textarea', { class: 'md', id: 'smyw-out', 'data-f': 'smyw-out', readonly: true, value: md, onfocus: (e) => e.target.select() })));
 }
 function answersList() {
-  return S.spec.questions.map((q, i) => { const qq = typeof q === 'string' ? { q: q } : q; const key = qq.id || String(i); return { id: key, question: qq.q || qq.question || '', answer: S.answers[key] || '' }; }).filter((a) => a.answer);
+  return S.spec.questions.map((q, i) => { const qq = typeof q === 'string' ? { q: q } : q; const key = qq.id || String(i); const ua = S.answers[key] || ''; const ans = ua || (qq.agentAnswer ? '【Agent 判定·未否决】' + qq.agentAnswer + (qq.agentReason ? '（依据: ' + qq.agentReason + '）' : '') : ''); return { id: key, question: qq.q || qq.question || '', answer: ans }; }).filter((a) => a.answer);
 }
 function stripSpec(sp) {
   const strip = (o) => {
