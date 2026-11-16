@@ -49,7 +49,7 @@ metadata:
 - `pages[].htmlBefore / htmlAfter / htmlCss`：**1:1 手写 HTML 复刻**替代抽象线框。变更元素只挂 `data-replica-unit="<spec节点id>"`——编号/颜色由 build.mjs 静态注入，**零手写编号**；说明放 `tipdot` 悬浮卡
 - **现状真机截图必须入树**：每个被改动的页面，树内第一个子节点放 `{type:"image", src:"evidence/current-pages/<该页面该tab>.png"}`——evidence/ 目录里躺着不算，**挂进 spec 树才算**；截图必须是变更发生处的 tab 激活态（tab 精准原则，禁止拿相邻页面截图顶替）
 - **改动页 ≥3 时补「0 改动」上下文页**：1-2 个相邻现状页（`change` 不写 + 树内截图），给评审「没改什么」的对照锚点
-- `sysflows[]`：系统流程——**首选 Archify embed**（`archify render` → `wrap-archify.mjs` → `embedHtml` iframe，点节点批注）；无 embed 回落泳道步骤；Archify 未安装也能工作
+- `sysflows[]`：系统流程——**必选 Archify embed**（`archify render` → `wrap-archify.mjs` → `embedHtml` iframe，点节点批注）。这是格式红线 R8：有 Archify 可用（`archify doctor` 通过）时，sysflows 只允许 embedHtml 形态；纯 steps 泳道仅两种豁免：(a) 本机 Archify 不可用（build 降级放行但标注"未安装 Archify·泳道降级"）；(b) spec 里写明每条泳道不用 Archify 的理由。新增流程先用 `archify guide` 选类型（sequence/architecture/workflow…），渲染产物过 `archify check` 再 wrap
 - `datachanges[]`：数据库变更——模块(库/域)→**逐表独立条目**→字段级 diff（`+ 新增/~ 修改附旧值/− 删除/· 不变` 全列出）、SQL 类型、迁移+回滚徽章；"不动"的表也显式列出
 - `middleware[]`：中间件变更——决策块(kind=decision)/出站/入站端点/后台任务/限流熔断/可观测，参数+失败语义结构化
 - 其余（pages/flows/backend/questions/changes）见 spec-format.md

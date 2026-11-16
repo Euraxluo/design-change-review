@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // build: validate a change spec and inline it into one self-contained preview HTML.
 // Usage: node build.mjs <spec.json> [-o preview.html] [--check]
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, basename, resolve, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -412,6 +412,25 @@ function validate(spec) {
     for (const p of pages) {
       if (p.change === 'modified' && !p.before && !p.note) warnings.push('页面「' + (p.name || p.id) + '」change=modified 但没有 before/note');
     }
+  }
+  // ---- R8 系统流程必选 Archify（对所有 stage 生效）----
+  // 判定 Archify 可用性（与 --doctor 同源：~/.agents/skills/archify/bin/archify.mjs）
+  const archifyAvailable = (() => {
+    try {
+      const bin = join(process.env.HOME || '', '.agents', 'skills', 'archify', 'bin', 'archify.mjs');
+      return existsSync(bin);
+    } catch { return false; }
+  })();
+  const lanesOnly = sysflows.filter((s) => !s.embedHtml && Array.isArray(s.steps) && s.steps.length);
+  if (sysflows.length && lanesOnly.length && archifyAvailable) {
+    // 可用却降级：要求逐条理由，否则警告未完成品（不阻断——旧 spec 平滑迁移，新 spec 应消灭此警告）
+    const noReason = lanesOnly.filter((s) => !(s.note && /archify|降级|不可用|暂不|理由/i.test(s.note)));
+    if (noReason.length) {
+      warnings.push('格式红线R8: ' + noReason.length + ' 条 sysflow 是纯泳道 steps 而本机 Archify 可用——按 R8 应为 embedHtml（archify render→check→wrap）；确需泳道请在每条 sysflow 的 note 写明不用 Archify 的理由。涉及: ' + noReason.map((s) => s.id).join(', '));
+    }
+  }
+  if (sysflows.length && lanesOnly.length && !archifyAvailable) {
+    warnings.push('格式红线R8(降级放行): 本机未安装 Archify，' + lanesOnly.length + ' 条 sysflow 以泳道 steps 交付——安装后应升级为 embedHtml');
   }
   return { errors, warnings, summary };
 }

@@ -192,7 +192,8 @@ action：
 - 无 htmlBefore/htmlAfter 的页退回上游线框渲染；image 节点 `src: "evidence/<area>/xx.png"` 相对 docs/plans，build 后 embed.mjs 内嵌 base64。
 
 ## sysflows[]（系统流程 tab）
-- `embedHtml`：可编辑 - 或 `steps[]` 泳道：actor 用系统名（用户/本平台/JT 授权服务器/资源服务器…），`kind:"note"` 或 text 以 `——` 开头作为阶段分隔标题
+- **必选** `embedHtml`（R8）：`archify guide <场景>` 选类型 → 写 input.json → `archify render <type> in.json out.html` → `archify check out.html` → `node $SKILL/scripts/wrap-archify.mjs out.html wrapped.html` → 读入为 embedHtml 字符串（含 `</` 走哨兵转义）。点节点批注与原型反馈管线共用
+- 降级 `steps[]` 泳道（仅 Archify 不可用或逐条写明理由）：actor 用系统名（用户/本平台/JT 授权服务器/资源服务器…），`kind:"note"` 或 text 以 `——` 开头作为阶段分隔标题；spec 顶层加 note 说明降级原因
 
 ## datachanges[]（数据库变更 tab）
 模块：`{ id, name, change, note, items: [{ id, table, change, columns: [{name, type, change, note}], indexes, note }] }`，columns.change: added/modified/removed 渲染 +/~/−(删除线)。

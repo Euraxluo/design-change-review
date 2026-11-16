@@ -17,6 +17,7 @@
 | R5 tab 精准 | 截图必须是变更发生处的 tab/视图激活态，禁止相邻页面顶替 | 人工（无法机器判图） |
 | R6 存量并入 | 新变更若触达任何未实施 prototype spec 的页面/路由，并入该 spec（version+1），不开新目录 | build 跨 spec 路由冲突检测 |
 | R7 复刻覆盖层画布骨架 | htmlOverlay-only 弹层（无 children）在画布上必须显示骨架占位 +「在演示里看内容」直达按钮，不许空白框 | runtime 兜底 + build 警告 |
+| R8 系统流程必选 Archify | Archify 可用时 sysflows 只允许 embedHtml；纯 steps 泳道 = 未完成品 | build 检查（doctor 探测 + 降级标注） |
 
 写 spec 前自查三问：改动页的截图进树了吗？有几页是「0 改动」对照？modified 页面的 before 写了吗？
 
@@ -50,7 +51,7 @@
 |---|---|---|
 | 界面改动 | pages[].htmlBefore/htmlAfter/htmlCss | 复刻双态；无复刻的页退回抽象线框（image 节点 src=evidence 相对路径，build 后由 embed.mjs 内嵌 base64） |
 | 流程变化 | flows[] | 基础字段（steps: actor/text/fn/node） |
-| 系统流程 | sysflows[] | `embedHtml`（Archify 包装版 iframe）**或**按阶段分组的泳道步骤（`steps[].kind:"note"` 或 text 以「——」开头作分隔标题） |
+| 系统流程 | sysflows[] | **必选** `embedHtml`（Archify: `archify guide` 选型 → `render` → `check` → `wrap-archify.mjs`）；Archify 不可用或逐条写明理由才降级泳道 steps（`kind:"note"` 或「——」分隔） |
 | 数据库变更 | datachanges[] | 模块→items，详见 spec-format.md「datachanges 完整字段」 |
 | 中间件变更 | middleware[] | 模块→items，详见 spec-format.md「middleware 完整字段」 |
 | 后端变化 | backend[] | 基础字段 |

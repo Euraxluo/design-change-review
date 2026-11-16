@@ -89,6 +89,21 @@ jobs:
           SPEC
           node scripts/build.mjs /tmp/r2/spec.json -o /tmp/r2/preview.html 2>&1 | tee /tmp/r2/out.txt
           grep -q "格式红线R2" /tmp/r2/out.txt && echo "R2 warns ✔"
+      - name: Format redline R8 warns lanes-only sysflows when Archify available
+        run: |
+          mkdir -p /tmp/r8t
+          cat > /tmp/r8t/s1.json <<'SPEC'
+          {"title":"r8","stage":"prototype","pages":[{"id":"a","name":"A","route":"/a","change":"modified","note":"x","root":{"id":"a-r","type":"page","change":"modified","note":"y","children":[{"id":"a-img","type":"image","src":"evidence/current-pages/a.png"}]}}],"sysflows":[{"id":"sf1","name":"S1","steps":[{"id":"q1","actor":"user","text":"x"}]}],"flows":[],"backend":[]}
+          SPEC
+          cat > /tmp/r8t/s2.json <<'SPEC'
+          {"title":"r8b","stage":"prototype","pages":[{"id":"a","name":"A","route":"/a","change":"modified","note":"x","root":{"id":"a-r","type":"page","change":"modified","note":"y","children":[{"id":"a-img","type":"image","src":"evidence/current-pages/a.png"}]}}],"sysflows":[{"id":"sf1","name":"S1","note":"暂不使用 archify：理由","steps":[{"id":"q1","actor":"user","text":"x"}]}],"flows":[],"backend":[]}
+          SPEC
+          node scripts/build.mjs /tmp/r8t/s1.json -o /tmp/r8t/o1.html 2>&1 | tee /tmp/r8t/o1.txt
+          grep -q "格式红线R8: 1 条 sysflow" /tmp/r8t/o1.txt && echo "R8 warns lanes-without-reason ✔"
+          node scripts/build.mjs /tmp/r8t/s2.json -o /tmp/r8t/o2.html 2>&1 | tee /tmp/r8t/o2.txt
+          ! grep -q "R8" /tmp/r8t/o2.txt && echo "R8 exempts lanes-with-reason ✔"
+          HOME=/tmp/r8t/nohome node scripts/build.mjs /tmp/r8t/s1.json -o /tmp/r8t/o3.html 2>&1 | tee /tmp/r8t/o3.txt
+          grep -q "降级放行" /tmp/r8t/o3.txt && echo "R8 degrade-pass without archify ✔"
       - name: R7 htmlOverlay-only overlay renders canvas skeleton + demo shortcut (runtime-smoke covers click path)
         run: |
           mkdir -p /tmp/ovt
