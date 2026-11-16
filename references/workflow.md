@@ -16,6 +16,7 @@
 | R4 嵌入完整性 | evidence 引用必须全部内嵌成功才允许交付 | embed 阻断退出 |
 | R5 tab 精准 | 截图必须是变更发生处的 tab/视图激活态，禁止相邻页面顶替 | 人工（无法机器判图） |
 | R6 存量并入 | 新变更若触达任何未实施 prototype spec 的页面/路由，并入该 spec（version+1），不开新目录 | build 跨 spec 路由冲突检测 |
+| R7 复刻覆盖层画布骨架 | htmlOverlay-only 弹层（无 children）在画布上必须显示骨架占位 +「在演示里看内容」直达按钮，不许空白框 | runtime 兜底 + build 警告 |
 
 写 spec 前自查三问：改动页的截图进树了吗？有几页是「0 改动」对照？modified 页面的 before 写了吗？
 

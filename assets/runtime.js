@@ -1052,9 +1052,21 @@ function overlayFrame(x, p, o) {
   const v = view(x, ghost ? 'before' : 'after');
   const trs = trigList(v).map((t) => findNode(p, t)).filter(Boolean);
   const vs = ghost ? 'before' : 'after';
+  // htmlOverlay-only 覆盖层: 演示态有复刻内容但画布 wireframe 无 children, 不提示就是"空抽屉"陷阱(v50 回退教训)。
+  // 画布上给一行指示 + 最小骨架(标题/两根内容条), 点「在演示里看内容」直接进演示并打开该弹层。
+  const hasKids = (x.children || []).length > 0 || (visItems(view(x, vs), vs, 'items') || []).length > 0;
+  const olBody = (!hasKids && x.htmlOverlay)
+    ? h('div', { class: 'wf t-' + v.type + ' is-c lay-col cv-ov-replica', 'data-kind': 'node', 'data-id': x.id, 'data-side': vs, 'data-unit': o.unit || null, title: '内容是 1:1 复刻(htmlOverlay), 画布只画骨架——点右下按钮进演示看真实内容' },
+        h('span', { class: 'wf-comp' }, '复刻内容 ' + (x.htmlOverlay.length / 1000).toFixed(1) + 'KB'),
+        h('div', { class: 'wf-children' },
+          h('div', { class: 'wf t-header is-leaf' }, nlabel(v)),
+          h('div', { class: 'wf t-text is-leaf' }, '复刻内容(版本表/命令/changelog 等)'),
+          h('div', { class: 'wf t-text is-leaf' }, '· 结构与文案以演示模式为准 ·')),
+        h('button', { class: 'lnk ov-demo-btn', style: 'margin-top:6px', onclick: (e) => { e.stopPropagation(); startPlay(p.id); ui.play.ovs.push(x.id); render(); } }, '▶ 在演示里看内容'))
+    : renderWF(x, p, o);
   return h('div', { class: 'cv-ov', 'data-ov': x.id, 'data-anchor': trigList(v).join(' ') || null, 'data-trigger': trigList(v).join(' ') || null, 'data-change': ghost ? 'removed' : x.change, style: { width: (OV_W[v.type] || 420) + 'px' } },
     h('div', { class: 'cv-ovh' }, '▸ ' + tname(v.type) + ' · ', trs.length ? ['点击 ', trs.map((t, i) => [i ? '、' : '', h('button', { class: 'lnk', onclick: (e) => { e.stopPropagation(); focusNode(p.id, t.n.id); } }, nlabel(view(t.n, vs)))]), ' 后出现'] : '未指定由哪个元素打开'),
-    renderWF(x, p, o));
+    olBody);
 }
 
 /* Click-revealed content (node.hidden + someone toggles/shows it): drawn as its own panel next to the screen,

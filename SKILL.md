@@ -59,7 +59,7 @@ metadata:
 node $SKILL/scripts/build.mjs .agents/jdr/<dir>/spec.json      # 校验+格式红线 lint, 出错阻断
 node $SKILL/scripts/embed.mjs .agents/jdr/<dir>/preview.html   # 截图内嵌 + </ 转义（默认从 preview 同目录探测 evidence/，缺图阻断退出）
 ```
-build.mjs 格式红线（v1.4+，机器兜底）：R1 有 modified/removed 页但树内 0 截图 → 阻断；R2 改动页≥3 无 0 改动上下文页 → 警告；R3 页面级 modified 无 before/note → 警告；**R6 兄弟目录存在未实施 prototype spec 收录了相同路由 → 阻断**（跨 `.agents/jdr/*` 目录扫描；同目录 spec*.json 是版本历史不算冲突；确属独立方案加 `--no-lint-siblings` 豁免并说明理由）。embed.mjs：evidence 引用有遗漏 → 阻断退出（不再静默成功）。
+build.mjs 格式红线（v1.5+，机器兜底）：R1 有 modified/removed 页但树内 0 截图 → 阻断；R2 改动页≥3 无 0 改动上下文页 → 警告；R3 页面级 modified 无 before/note → 警告；**R6 兄弟目录存在未实施 prototype spec 收录了相同路由 → 阻断**（跨 `.agents/jdr/*` 目录扫描；同目录 spec*.json 是版本历史不算冲突；确属独立方案加 `--no-lint-siblings` 豁免并说明理由）。embed.mjs：evidence 引用有遗漏 → 阻断退出（不再静默成功）。
 
 ### 4. 交互验证（必须做，不许只看构建成功）
 Playwright 真实点击验证（清单见 workflow.md）：徽标编号三方一致、详情小图单屏等比无截断、演示模式交互链、Archify 点选批注、CSS 隔离。

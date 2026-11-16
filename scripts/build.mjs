@@ -385,6 +385,13 @@ function validate(spec) {
   const summary = '· 页面 ' + pages.length + '（' + f(cnt.pages) + '）· 界面元素变化 ' + f(cnt.nodes) + ' · 流程 ' + flows.length + '（步骤 ' + f(cnt.steps) + '）· 后端 ' + backend.length + ' 个模块（' + f(cnt.be) + '）';
   if (!pages.length && !flows.length && !backend.length) warnings.push('spec 里没有 pages / flows / backend，预览将是空的');
 
+  // ---- v1.5 htmlOverlay-only 覆盖层提示（画布空抽屉回退教训）----
+  for (const p of pages) for (const o of p.overlays || []) {
+    const hasKids = (o.children || []).length > 0 || (o.items || []).length > 0;
+    if (o.htmlOverlay && !hasKids && o.change !== 'removed') {
+      warnings.push('弹层「' + (o.name || o.id) + '」只有 htmlOverlay 没有 wireframe children——画布态会显示骨架占位(v1.5 起带「在演示里看内容」按钮); 建议补 children 让画布也有结构');
+    }
+  }
   // ---- v1.3 格式红线 lint（2026-11-16 软件市场回退教训，机器兜底代替 agent 自觉）----
   // 红线只对 prototype 阶段生效（stage=done 的回顾可以无截图无 0 改动页）。
   const isPrototype = spec.stage !== 'done';

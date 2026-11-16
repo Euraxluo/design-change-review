@@ -89,6 +89,17 @@ jobs:
           SPEC
           node scripts/build.mjs /tmp/r2/spec.json -o /tmp/r2/preview.html 2>&1 | tee /tmp/r2/out.txt
           grep -q "格式红线R2" /tmp/r2/out.txt && echo "R2 warns ✔"
+      - name: R7 htmlOverlay-only overlay renders canvas skeleton + demo shortcut (runtime-smoke covers click path)
+        run: |
+          mkdir -p /tmp/ovt
+          cat > /tmp/ovt/spec.json <<'SPEC'
+          {"title":"r7","stage":"prototype","version":1,"pages":[{"id":"pg","name":"PG","route":"/pg","change":"modified","note":"x","width":900,
+            "root":{"id":"r","type":"page","change":"modified","note":"y","children":[{"id":"shot","type":"image","label":"s","src":"evidence/current-pages/a.png"},{"id":"card1","type":"card","label":"点我","change":"added"}]},
+            "overlays":[{"id":"ov1","type":"drawer","name":"详情","trigger":"card1","change":"added","note":"n","htmlOverlay":"<div>真实内容标题</div>"}]}],"flows":[],"backend":[]}
+          SPEC
+          node scripts/build.mjs /tmp/ovt/spec.json -o /tmp/ovt/preview.html 2>&1 | tee /tmp/ovt/out.txt
+          grep -q "htmlOverlay 没有 wireframe children" /tmp/ovt/out.txt && echo "R7 build warning fires ✔"
+          grep -q "在演示里看内容" /tmp/ovt/preview.html && echo "R7 canvas fallback present in preview ✔"
       - name: Format redline R6 blocks new spec whose routes an unimplemented sibling prototype already covers
         run: |
           mkdir -p /tmp/jdr/20260101-old/design /tmp/jdr/20260102-new/design
