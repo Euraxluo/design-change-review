@@ -44,6 +44,8 @@ metadata:
 ### 2. 写 spec（`<project>/.agents/jdr/<日期>-<名称>/spec.json`（产物资产跟项目走，`.agents` 是标准目录））
 一棵合并树 + 扩展字段：
 - `pages[].htmlBefore / htmlAfter / htmlCss`：**1:1 手写 HTML 复刻**替代抽象线框。变更元素只挂 `data-replica-unit="<spec节点id>"`——编号/颜色由 build.mjs 静态注入，**零手写编号**；说明放 `tipdot` 悬浮卡
+- **现状真机截图必须入树**：每个被改动的页面，树内第一个子节点放 `{type:"image", src:"evidence/current-pages/<该页面该tab>.png"}`——evidence/ 目录里躺着不算，**挂进 spec 树才算**；截图必须是变更发生处的 tab 激活态（tab 精准原则，禁止拿相邻页面截图顶替）
+- **改动页 ≥3 时补「0 改动」上下文页**：1-2 个相邻现状页（`change` 不写 + 树内截图），给评审「没改什么」的对照锚点
 - `sysflows[]`：系统流程——**首选 Archify embed**（`archify render` → `wrap-archify.mjs` → `embedHtml` iframe，点节点批注）；无 embed 回落泳道步骤；Archify 未安装也能工作
 - `datachanges[]`：数据库变更——模块(库/域)→**逐表独立条目**→字段级 diff（`+ 新增/~ 修改附旧值/− 删除/· 不变` 全列出）、SQL 类型、迁移+回滚徽章；"不动"的表也显式列出
 - `middleware[]`：中间件变更——决策块(kind=decision)/出站/入站端点/后台任务/限流熔断/可观测，参数+失败语义结构化
@@ -51,9 +53,10 @@ metadata:
 
 ### 3. 构建与后处理
 ```bash
-node $SKILL/scripts/build.mjs .agents/jdr/<dir>/spec.json      # 校验+注入徽标, 出错阻断
-node $SKILL/scripts/embed.mjs .agents/jdr/<dir>/preview.html   # 截图内嵌 + </ 转义
+node $SKILL/scripts/build.mjs .agents/jdr/<dir>/spec.json      # 校验+格式红线 lint, 出错阻断
+node $SKILL/scripts/embed.mjs .agents/jdr/<dir>/preview.html   # 截图内嵌 + </ 转义（默认从 preview 同目录探测 evidence/，缺图阻断退出）
 ```
+build.mjs 格式红线（v1.3+，机器兜底）：R1 有 modified/removed 页但树内 0 截图 → 阻断；R2 改动页≥3 无 0 改动上下文页 → 警告；R3 页面级 modified 无 before/note → 警告。embed.mjs：evidence 引用有遗漏 → 阻断退出（不再静默成功）。
 
 ### 4. 交互验证（必须做，不许只看构建成功）
 Playwright 真实点击验证（清单见 workflow.md）：徽标编号三方一致、详情小图单屏等比无截断、演示模式交互链、Archify 点选批注、CSS 隔离。

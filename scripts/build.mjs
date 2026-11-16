@@ -324,5 +324,27 @@ function validate(spec) {
   const f = (b) => '+' + b.added + ' −' + b.removed + ' ~' + b.modified;
   const summary = '· 页面 ' + pages.length + '（' + f(cnt.pages) + '）· 界面元素变化 ' + f(cnt.nodes) + ' · 流程 ' + flows.length + '（步骤 ' + f(cnt.steps) + '）· 后端 ' + backend.length + ' 个模块（' + f(cnt.be) + '）';
   if (!pages.length && !flows.length && !backend.length) warnings.push('spec 里没有 pages / flows / backend，预览将是空的');
+
+  // ---- v1.3 格式红线 lint（2026-11-16 软件市场回退教训，机器兜底代替 agent 自觉）----
+  // 红线只对 prototype 阶段生效（stage=done 的回顾可以无截图无 0 改动页）。
+  const isPrototype = spec.stage !== 'done';
+  if (isPrototype) {
+    // R1 证据红线: 涉及「修改/删除已有页面」的方案，spec 树里必须至少 1 个 image 节点（现状真机截图入树）。
+    const hasImageNode = pages.some((p) => JSON.stringify(p.root || {}).includes('"type":"image"') || JSON.stringify(p.root || {}).includes('"type": "image"'));
+    const touchesExisting = pages.some((p) => p.change === 'modified' || p.change === 'removed');
+    if (touchesExisting && !hasImageNode) {
+      errors.push('格式红线R1: 有 modified/removed 页面但树内 0 个 image 节点——现状真机截图必须挂进 spec（evidence/ 截了不算，入树才算），否则评审看不到「改动前」');
+    }
+    // R2 上下文红线: 改动页 ≥3 时，至少 1 个 change 缺省/unchanged 的上下文页（0 改动锚点），防「全绿新增」式方案失去对照。
+    const changedPages = pages.filter((p) => p.change && p.change !== 'unchanged').length;
+    const ctxPages = pages.filter((p) => !p.change || p.change === 'unchanged').length;
+    if (changedPages >= 3 && ctxPages === 0) {
+      warnings.push('格式红线R2(建议): ' + changedPages + ' 个改动页但没有任何「0 改动」上下文页——补 1-2 个相邻现状页（route+截图）做对照锚点（1112 标杆格式）');
+    }
+    // R3 modified 条目必须可辨识: 页面级 change=modified 时 before 或 note 至少其一（与池条目同标准）。
+    for (const p of pages) {
+      if (p.change === 'modified' && !p.before && !p.note) warnings.push('页面「' + (p.name || p.id) + '」change=modified 但没有 before/note');
+    }
+  }
   return { errors, warnings, summary };
 }

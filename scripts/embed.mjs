@@ -3,26 +3,33 @@
 //  1. spec 里 image 节点的 src=evidence/... 相对路径 → base64 data URI 内嵌（单文件离线）
 //  2. 校验 htmlBefore/htmlAfter/embedHtml 中的哨兵残留（防 </script> 破坏外层脚本）
 // 用法: node embed.mjs <preview.html> [--root <项目根，默认 cwd>]
+//       root 探测顺序: --root 显式 > preview.html 所在目录(jdr dir) > cwd 及其 docs/plans 变体。
+//       注意: 产物目录即 .agents/jdr/<date>-<name>/ 时, evidence/ 通常就在该目录下——所以
+//       preview 同目录是第一优先探测点, 否则会「截了图却嵌不进」(2026-11-16 软件市场回退的直接原因)。
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 
 const args = process.argv.slice(2);
 const file = args[0];
 const rootIdx = args.indexOf('--root');
-const root = rootIdx > -1 ? resolve(args[rootIdx + 1]) : process.cwd();
+const previewDir = file ? resolve(dirname(file)) : null;
+const root = rootIdx > -1 ? resolve(args[rootIdx + 1]) : (previewDir || process.cwd());
 if (!file) { console.error('usage: node embed.mjs <preview.html> [--root <dir>]'); process.exit(1); }
 
-let html = readFileSync(file, 'utf8');
+let html = readFileSync(file, 'utf-8');
 let n = 0;
+let misses = 0;
 html = html.replace(/"src":"(evidence\/[^"]+?)"/g, (m, rel) => {
   try {
-    // src 形如 evidence/current-pages/x.png 或 <area>/evidence/...；在 root 下自动探测其真实位置
-    // existsSync 已在顶部 import
+    // src 形如 evidence/current-pages/x.png 或 <area>/evidence/...；按 root 优先级探测真实位置
     let fp = null;
-    for (const cand of [join(root, rel), join(root, 'docs/plans', rel), join(root, 'docs/plans', 'openapi-workers', rel)]) {
+    const candidates = previewDir
+      ? [join(previewDir, rel), join(root, rel), join(root, 'docs/plans', rel), join(root, 'docs/plans', 'openapi-workers', rel)]
+      : [join(root, rel), join(root, 'docs/plans', rel), join(root, 'docs/plans', 'openapi-workers', rel)];
+    for (const cand of candidates) {
       if (existsSync(cand)) { fp = cand; break; }
     }
-    if (!fp) { console.error('  ⚠ 未找到', rel); return m; }
+    if (!fp) { misses++; console.error('  ⚠ 未找到', rel, '(探测过:', candidates.join(' ; '), ')'); return m; }
     const b64 = readFileSync(fp).toString('base64');
     n++;
     return `"src":"data:image/png;base64,${b64}"`;
@@ -34,3 +41,8 @@ if (html.includes('\u0000S\u0000') || /\\u0000S\\u0000/.test(html)) {
 }
 writeFileSync(file, html);
 console.log(`✔ 内嵌截图 ${n} 张；哨兵校验通过；size ${(html.length / 1024).toFixed(0)}KB`);
+// 有 evidence 引用却一张没嵌上 = 截了图但交付物里看不到，静默成功就是格式回退(2026-11-16 教训)
+if (misses > 0) {
+  console.error(`✖ ${misses} 张 evidence 截图未找到且未内嵌——单文件离线交付不完整，阻断退出`);
+  process.exit(1);
+}

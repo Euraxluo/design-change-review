@@ -69,6 +69,38 @@ jobs:
             echo "duplicate ids rejected ✔"
           fi
 
+      - name: Format redline R1 blocks modified page without in-tree screenshot
+        run: |
+          mkdir -p /tmp/r1
+          echo '{"title":"r1","stage":"prototype","pages":[{"id":"a","name":"A","change":"modified","note":"x","root":{"id":"a-r","type":"page","change":"modified","note":"y","children":[{"id":"a1","type":"button","label":"b","change":"added"}]}}],"flows":[],"backend":[]}' > /tmp/r1/spec.json
+          if node scripts/build.mjs /tmp/r1/spec.json -o /tmp/r1/preview.html 2>/tmp/r1/err.txt; then
+            echo "ERROR: R1 should block"; exit 1
+          else
+            grep -q "格式红线R1" /tmp/r1/err.txt && echo "R1 blocks ✔"
+          fi
+      - name: Format redline R1 passes with image node; R2 warns when 3+ changed pages lack context page
+        run: |
+          mkdir -p /tmp/r2
+          cat > /tmp/r2/spec.json <<'SPEC'
+          {"title":"r2","stage":"prototype","pages":[
+            {"id":"a","name":"A","change":"modified","note":"x","root":{"id":"a-r","type":"page","change":"modified","note":"y","children":[{"id":"a-img","type":"image","label":"shot","src":"evidence/current-pages/a.png"},{"id":"a1","type":"button","label":"b","change":"added"}]}},
+            {"id":"b","name":"B","change":"modified","note":"x","root":{"id":"b-r","type":"page","change":"modified","note":"y","children":[{"id":"b-img","type":"image","label":"shot","src":"evidence/current-pages/b.png"},{"id":"b1","type":"button","label":"c","change":"added"}]}},
+            {"id":"c","name":"C","change":"added","root":{"id":"c-r","type":"page","children":[]}}],"flows":[],"backend":[]}
+          SPEC
+          node scripts/build.mjs /tmp/r2/spec.json -o /tmp/r2/preview.html 2>&1 | tee /tmp/r2/out.txt
+          grep -q "格式红线R2" /tmp/r2/out.txt && echo "R2 warns ✔"
+      - name: embed.mjs exits nonzero on missing evidence; discovers evidence next to preview by default
+        run: |
+          mkdir -p /tmp/emb/evidence/current-pages
+          echo '"src":"evidence/current-pages/nope.png"' > /tmp/emb/preview.html
+          if node scripts/embed.mjs /tmp/emb/preview.html 2>/tmp/emb/err.txt; then
+            echo "ERROR: embed should fail on missing evidence"; exit 1
+          else
+            grep -q "未找到" /tmp/emb/err.txt && echo "embed blocks on missing evidence ✔"
+          fi
+          printf '\x89PNG\r\n\x1a\n' > /tmp/emb/evidence/current-pages/nope.png
+          node scripts/embed.mjs /tmp/emb/preview.html | grep -q "内嵌截图 1 张" && echo "embed default-root discovery ✔"
+
   wrap-smoke:
     runs-on: ubuntu-latest
     steps:
